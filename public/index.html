@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TikTok Link Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://www.tiktok.com/embed.js"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-white">
+  <main class="mx-auto max-w-2xl px-5 py-20">
+    <p class="mb-3 text-sm font-semibold text-cyan-300">VIDEO LINK PREVIEW</p>
+    <h1 class="text-4xl font-bold tracking-tight">Preview a TikTok</h1>
+    <p class="mt-3 text-slate-300">
+      Paste a public video link to view its TikTok embed and available details.
+    </p>
+
+    <form id="form" class="mt-8 flex flex-col gap-3 sm:flex-row">
+      <label class="sr-only" for="url">TikTok video URL</label>
+      <input id="url" type="url" required
+        placeholder="https://www.tiktok.com/@user/video/..."
+        class="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-cyan-400">
+      <button id="submit" class="rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-slate-950 hover:bg-cyan-300">
+        Preview
+      </button>
+    </form>
+
+    <p id="status" role="status" class="mt-4 text-sm text-slate-300"></p>
+    <section id="result" class="mt-8 hidden rounded-2xl border border-slate-800 bg-slate-900 p-5">
+      <h2 id="title" class="text-lg font-semibold"></h2>
+      <p id="author" class="mt-1 text-sm text-slate-400"></p>
+      <div id="embed" class="mt-5 overflow-x-auto"></div>
+    </section>
+  </main>
+
+  <script>
+    const form = document.querySelector("#form");
+    const input = document.querySelector("#url");
+    const button = document.querySelector("#submit");
+    const status = document.querySelector("#status");
+    const result = document.querySelector("#result");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.classList.add("hidden");
+      status.textContent = "Loading preview…";
+      button.disabled = true;
+      button.textContent = "Loading…";
+
+      try {
+        const response = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: input.value.trim() })
+        });
+        const data = await response.json();
+
+        if (!response.ok) throw new Error(data.error || "Could not load preview.");
+
+        document.querySelector("#title").textContent = data.title;
+        document.querySelector("#author").textContent =
+          data.author ? `By ${data.author}` : "";
+
+        document.querySelector("#embed").innerHTML = data.embedHtml;
+        result.classList.remove("hidden");
+        status.textContent = "";
+        window.tiktokEmbed?.lib?.render?.();
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        button.disabled = false;
+        button.textContent = "Preview";
+      }
+    });
+  </script>
+</body>
+</html>
